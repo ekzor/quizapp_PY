@@ -248,15 +248,17 @@ if __name__ == '__main__':
   os.system("cls" if os.name == "nt" else "clear")
   
   #report the player's final score
+  print "\nThanks for playing!"
   print "\nFinal score: " + str(player.score)
 
   #report high scores
-  print "High scores:\n"
+  print "\nHigh scores:"
+  rank = 0
+  print "{0} {1} {2}".format("Rank","Pts","Name")
   for (hs_id,hs_name,hs_score) in dbh.get_highscores():
+    rank += 1
     #include an indicator for the current player if they make the cut
     indic = "<------" if hs_id == player.get_id() else ""
-    print "{0:5d}  {1} {2}".format(hs_score,hs_name,indic)
-
-  print "Thanks for playing!"
+    print "{0:3d}. {1:3d} {2} {3}".format(rank, hs_score, hs_name, indic)
 
   db.close()
