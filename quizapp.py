@@ -26,10 +26,7 @@ class DatabaseHandler(object):
   def get_answers(self,questionid):
     """Return all possible answers for a given question"""
     self._cursor.execute("SELECT answertext,correct FROM answers WHERE questionid=?",(questionid,))
-    result = []
-    for row in self._cursor.fetchall():
-      result.append({'answertext':row[0], 'correct':row[1]})
-    return result;
+    return [{'answertext':answertext, 'correct':correct} for answertext,correct in self._cursor.fetchall()];
     
   def get_score(self,playerid):
     """Return score for a given player id"""
@@ -44,10 +41,7 @@ class DatabaseHandler(object):
   def get_highscores(self,count=5):
     """Get top scores. Most recent entries are preferred in the event of a tie."""
     self._cursor.execute("SELECT id,name,score FROM players ORDER BY score DESC, id DESC LIMIT ?",(count,))
-    result = []
-    for row in self._cursor.fetchall():
-      result.append({'id':row[0], 'name':row[1], 'score':row[2]})
-    return result;
+    return [{'id':id, 'name':name, 'score':score} for id,name,score in self._cursor.fetchall()];
     
   def create_player(self,name):
     """Add a player to the DB and return their unique ID"""
