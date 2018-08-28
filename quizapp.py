@@ -26,7 +26,10 @@ class DatabaseHandler(object):
   def get_answers(self,questionid):
     """Return all possible answers for a given question"""
     self._cursor.execute("SELECT answertext,correct FROM answers WHERE questionid=?",(questionid,))
-    return self._cursor.fetchall()
+    result = []
+    for row in self._cursor.fetchall():
+      result.append({'answertext':row[0], 'correct':row[1]})
+    return result;
     
   def get_score(self,playerid):
     """Return score for a given player id"""
@@ -41,7 +44,10 @@ class DatabaseHandler(object):
   def get_highscores(self,count=5):
     """Get top scores. Most recent entries are preferred in the event of a tie."""
     self._cursor.execute("SELECT id,name,score FROM players ORDER BY score DESC, id DESC LIMIT ?",(count,))
-    return self._cursor.fetchall()
+    result = []
+    for row in self._cursor.fetchall():
+      result.append({'id':row[0], 'name':row[1], 'score':row[2]})
+    return result;
     
   def create_player(self,name):
     """Add a player to the DB and return their unique ID"""
@@ -114,7 +120,7 @@ class Question(object):
 
   def get_correct_answer_count(self):
     """get the number of correct answers for the given question"""
-    return len([x for x in self.answers if x[1]==1])
+    return len([x for x in self.answers if x['correct']==1])
     
   def sanitize_user_answer_to_list(self,user_answer):
     """turn the user's response into a list of alphabetical characters"""
@@ -144,7 +150,7 @@ class Question(object):
         raise ValueError("Invalid selection: "+ans)
       
       #check if any user selections are wrong
-      if self.answers[answer_index][1] == 0:
+      if self.answers[answer_index]['correct'] == 0:
         return False
     
     #if we make it out of the loop without triggering any returns or errors, the answer must be true
@@ -199,24 +205,24 @@ if __name__ == '__main__':
   player = Player(dbh,name)
   
   qid = 0
-  q_count = dbh.get_question_count()
+  question_count = dbh.get_question_count()
   
   #loop through all the questions until we run out
-  while (qid < q_count):
+  while (qid < question_count):
     os.system("cls" if os.name == "nt" else "clear")
     print player.name + "                   Score: " + str(player.score)
 
     #create a question object and store some of the question's data
     question = Question(dbh,qid)
     answers = question.get_answers()
-    a_count = question.get_correct_answer_count()
+    answer_count = question.get_correct_answer_count()
     wrapper = textwrap.TextWrapper(initial_indent="    ",subsequent_indent="       ")
     
     #output the question and possible answers to the user
     print "\n" + question.get_question() + "\n"
-    print "Select " + str(a_count) + " answer" + ("s" if a_count>1 else "") + " from below:\n"
+    print "Select " + str(answer_count) + " answer" + ("s" if answer_count>1 else "") + " from below:\n"
     for i in range(len(answers)):
-      anstext = chr(65+i) + ". " + answers[i][0]
+      anstext = chr(65+i) + ". " + answers[i]['answertext']
       for line in wrapper.wrap(anstext):
         print line
     
@@ -224,12 +230,12 @@ if __name__ == '__main__':
     while True:
       try:
         #prompt the user for an answer
-        user_answer = raw_input("\nYour response ("+str(a_count) + " answer" + ("s" if a_count>1 else "")+"): ")
+        user_answer = raw_input("\nYour response ("+str(answer_count) + " answer" + ("s" if answer_count>1 else "")+"): ")
 
         #let the user know if they got it right
         if question.check_answer(user_answer):
-          print "Correct! You get "+str(a_count)+" point"+("s" if a_count>1 else "")
-          player.score_up(a_count)
+          print "Correct! You get "+str(answer_count)+" point"+("s" if answer_count>1 else "")
+          player.score_up(answer_count)
         else:
           print "Sorry, that's incorrect. No points for you!"
         
@@ -254,11 +260,11 @@ if __name__ == '__main__':
   #report high scores
   print "\nHigh scores:"
   rank = 0
-  print "{0} {1} {2}".format("Rank","Pts","Name")
-  for (hs_id,hs_name,hs_score) in dbh.get_highscores():
+  print "  {0} {1} {2}".format("Rank","Pts","Name")
+  for hs_entry in dbh.get_highscores():
     rank += 1
     #include an indicator for the current player if they make the cut
-    indic = "<------" if hs_id == player.get_id() else ""
-    print "{0:3d}. {1:3d} {2} {3}".format(rank, hs_score, hs_name, indic)
+    indic = "<------" if hs_entry['id'] == player.get_id() else ""
+    print "  {0:3d}. {1:3d} {2} {3}".format(rank, hs_entry['score'], hs_entry['name'], indic)
 
   db.close()
